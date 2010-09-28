@@ -35,6 +35,18 @@ GLdouble inner_curve[5][4][3] = {
   {{0.459, 0.969, 0.0}, {0.287, 0.876, 0.0}, {-0.045, 0.641, 0.0}, {-0.343, 0.398, 0.0}}, 
   {{-0.343, 0.398, 0.0}, {-0.726, 0.084, 0.0}, {-0.982, -0.305, 0.0}, {-1.323, -0.387, 0.0}}};
 
+GLfloat x = 0.0f;
+GLfloat y = 0.0f;
+GLfloat z = 0.0f;
+GLfloat rsize = 2.0f;
+GLfloat xstep = 0.05f;
+GLfloat ystep = 0.05f;
+GLfloat zstep = 0.15f;
+GLfloat rstep = 1.00;
+GLfloat windowWidth;
+GLfloat windowHeight;
+GLfloat windowDepth;
+
 static GLdouble calculate_bezier_point(GLdouble a, GLdouble b, GLdouble c, GLdouble d, float u) {
   float v = 1.0 - u;
 
@@ -143,7 +155,7 @@ void CALLBACK endCallback(void) {
 
 static void init() {
   glClearColor(0.0, 0.0, 0.0, 0.0);
-  glShadeModel(GL_FLAT);
+  glShadeModel(GL_FLAT); 
 
   create_vertex_array();
 
@@ -196,8 +208,8 @@ static void display() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   
   glPushMatrix();
-  glRotatef(spin, -1.0, 1.0, 0.0);
-  glTranslatef(movex, movey, movez);
+  glTranslatef(x, y, z);
+  glRotatef(spin, 0.0, 1.0, 0.0);
 
   glColor3f(0.674, 0.0, 0.0);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -230,20 +242,65 @@ static void display() {
 }
 
 static void reshape(int w, int h) {
+    GLfloat aspectRatio;
+
+    if (h == 0)
+        h = 1;
+
   glViewport(0, 0, (GLsizei) w, (GLsizei) h);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glOrtho(-3.0, 3.0, -3.0, 3.0, 3, -3.0);
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
+
+    windowDepth = 10;
+
+    aspectRatio = (GLfloat)w / (GLfloat)h;
+    if (w <= h) {
+        windowWidth = 10;
+        windowHeight = 10 / aspectRatio;
+        glOrtho(-10.0, 10.0, -windowHeight, windowHeight, windowDepth, -windowDepth);
+    } else {
+        windowWidth = 10 * aspectRatio;
+        windowHeight = 10;
+        glOrtho(-windowWidth, windowWidth, -10.0, 10.0, windowDepth, -windowDepth);
+
+    }
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 }
 
-static void bounce_and_spin() {
+void TimerFunction(int value) {
+    if (x > windowWidth-rsize || x < -windowWidth + rsize)
+        xstep = -xstep;
 
-  spin = spin + 0.05;
-  if (spin > 360.0)
-    spin = spin - 360.0;
-  glutPostRedisplay();
+    if (y > windowHeight-rsize || y< -windowHeight + rsize)
+        ystep = -ystep;
+
+    if (z > windowDepth-rsize || z < -windowDepth + rsize)
+        zstep = -zstep;
+
+    x += xstep;
+    y += ystep;
+    z += zstep;
+    spin += rstep;
+
+    if (x > (windowWidth-rsize + xstep))
+        x = windowWidth-rsize;
+    else if (x < -(windowWidth + xstep))
+        x = -windowWidth + rsize - xstep;
+
+    if (y > (windowHeight - rsize + ystep))
+        y = windowHeight - rsize;
+    else if (y < -(windowHeight + rsize + ystep))
+        y = -windowHeight + rsize - ystep;
+
+    if (z > (windowDepth - rsize + zstep))
+        z = windowDepth - rsize;
+    else if (z < -(windowDepth + rsize + zstep))
+        z = -windowDepth + rsize - zstep;
+
+    glutPostRedisplay();
+    glutTimerFunc(33, TimerFunction, 1);
 }
 
 int main(int argc, char* argv[]) {
@@ -257,11 +314,10 @@ int main(int argc, char* argv[]) {
 
   glutDisplayFunc(display);
   glutReshapeFunc(reshape);
-  //glutIdleFunc(bounce_and_spin);
+  glutTimerFunc(33, TimerFunction, 1);
 
   glutMainLoop();
 
   return 0;
 }
-
 
